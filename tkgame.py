@@ -58,6 +58,21 @@ class Game:
     def height(self):
         return self.canvas.winfo_height()
 
+    def _on_event(self, event):
+        if self.running:
+            self._events.append(event)
+
+    def register_event_listeners(self, event_listeners):
+        for event_listener in event_listeners:
+            id_ = self.canvas.bind(event_listener, self._on_event)
+            self._event_listeners[event_listener] = id_
+
+    def unregister_event_listeners(self, event_listeners):
+        for event_listener in event_listeners:
+            id_ = self._event_listeners[event_listener]
+            self.canvas.unbind(event_listener, id_)
+            del self._event_listeners[event_listener]
+
     def add_entity(self, entity):
         entity.add()
         self._entities.append(entity)
@@ -87,40 +102,6 @@ class Game:
     def run(self):
         pass
 
-    def update(self, events):
-        pass
-
-    def draw(self):
-        pass
-
-    def _update(self):
-        events = tuple(self._events)
-        self.update(events)
-        for entity in self._entities:
-            entity.update(events)
-
-        self._events.clear()
-
-    def _draw(self, interpolation):
-        self.draw()
-        for entity in self._entities:
-            entity.draw(interpolation)
-
-    def _on_event(self, event):
-        if self.running:
-            self._events.append(event)
-
-    def register_event_listeners(self, event_listeners):
-        for event_listener in event_listeners:
-            id_ = self.canvas.bind(event_listener, self._on_event)
-            self._event_listeners[event_listener] = id_
-
-    def unregister_event_listeners(self, event_listeners):
-        for event_listener in event_listeners:
-            id_ = self._event_listeners[event_listener]
-            self.canvas.unbind(event_listener, id_)
-            del self._event_listeners[event_listener]
-
     # http://www.koonsolo.com/news/dewitters-gameloop/
     # FPS are limited to 1000 and TPS to 1000 * self.maximum_frameskip
     # due to TkInter's after method only accepting integers
@@ -149,3 +130,22 @@ class Game:
 
         delay = int(math.floor(min(next_draw - time.perf_counter(), next_update - time.perf_counter()) * 1000))
         self.canvas.after(delay or 1, self._run)
+
+    def update(self, events):
+        pass
+
+    def _update(self):
+        events = tuple(self._events)
+        self.update(events)
+        for entity in self._entities:
+            entity.update(events)
+
+        self._events.clear()
+
+    def draw(self):
+        pass
+
+    def _draw(self, interpolation):
+        self.draw()
+        for entity in self._entities:
+            entity.draw(interpolation)
