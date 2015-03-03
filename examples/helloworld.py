@@ -41,7 +41,7 @@ class HelloWorld(tkgame.Entity):
 class Game(tkgame.Game):
 
     def run(self):
-        self.register_event_listeners(('<ButtonPress>',))
+        self.add_event_listener('<ButtonPress>')
         self.add_entity(HelloWorld(self))
 
 

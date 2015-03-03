@@ -62,16 +62,14 @@ class Game:
         if self.running:
             self._events.append(event)
 
-    def register_event_listeners(self, event_listeners):
-        for event_listener in event_listeners:
-            id_ = self.canvas.bind(event_listener, self._on_event)
-            self._event_listeners[event_listener] = id_
+    def add_event_listener(self, event):
+        id_ = self.canvas.bind(event, self._on_event)
+        self._event_listeners[event] = id_
 
-    def unregister_event_listeners(self, event_listeners):
-        for event_listener in event_listeners:
-            id_ = self._event_listeners[event_listener]
-            self.canvas.unbind(event_listener, id_)
-            del self._event_listeners[event_listener]
+    def remove_event_listener(self, event):
+        id_ = self._event_listeners[event]
+        self.canvas.unbind(event, id_)
+        del self._event_listeners[event]
 
     def add_entity(self, entity):
         entity.add()
@@ -94,7 +92,10 @@ class Game:
 
     def stop(self):
         self.running = False
-        self.unregister_event_listeners(tuple(self._event_listeners.keys()))
+
+        for event in self._event_listeners.keys():
+            self.remove_event_listener(event)
+
         self._events.clear()
         for entity in self._entities:
             entity.remove()
