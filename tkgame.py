@@ -94,9 +94,10 @@ class Game:
         pass
 
     def _update(self):
-        self.update(self._events)
+        events = tuple(self._events)
+        self.update(events)
         for entity in self._entities:
-            entity.update(self._events)
+            entity.update(events)
 
         self._events.clear()
 
