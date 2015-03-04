@@ -1,3 +1,4 @@
+import collections
 import math
 import time
 
@@ -25,9 +26,10 @@ class Entity:
         x = self.x + self.dx * interpolation
         y = self.y + self.dy * interpolation
 
-        if not self.width or not self.height:
+        len_coordinates = len(self.game.canvas.coords(self.id))
+        if len_coordinates == 2:
             self.game.canvas.coords(self.id, (x, y))
-        else:
+        elif len_coordinates == 4:
             self.game.canvas.coords(self.id, (x, y, x+self.width, y+self.height))
 
     def remove(self):
@@ -36,7 +38,8 @@ class Entity:
 
 class Game:
 
-    def __init__(self, canvas, ticks_per_second=20, frames_per_second=60, maximum_frameskip=5):
+    def __init__(self, root, canvas, ticks_per_second=20, frames_per_second=60, maximum_frameskip=5):
+        self.root = root
         self.canvas = canvas
 
         self._tick_delay = 1 / ticks_per_second
@@ -48,7 +51,7 @@ class Game:
         self._next_draw = None
         self._entities = []
         self._event_listeners = {}
-        self._events = []
+        self._events = collections.defaultdict(list)
 
     @property
     def width(self):
@@ -58,18 +61,19 @@ class Game:
     def height(self):
         return self.canvas.winfo_height()
 
-    def _on_event(self, event):
+    def _on_event(self, event, callback):
         if self.running:
-            self._events.append(event)
+            self._events[callback].append(event)
 
-    def add_event_listener(self, event):
-        id_ = self.canvas.bind(event, self._on_event)
-        self._event_listeners[event] = id_
+    def add_event_listener(self, event, callback):
+        id_ = self.root.bind(event, lambda event: self._on_event(event, callback))
+        self._event_listeners[(event, callback)] = id_
 
-    def remove_event_listener(self, event):
-        id_ = self._event_listeners[event]
-        self.canvas.unbind(event, id_)
-        del self._event_listeners[event]
+    def remove_event_listener(self, event, callback):
+        key = event, callback
+        id_ = self._event_listeners[key]
+        self.root.unbind(event, id_)
+        del self._event_listeners[key]
 
     def add_entity(self, entity):
         entity.add()
@@ -93,12 +97,13 @@ class Game:
     def stop(self):
         self.running = False
 
-        for event in self._event_listeners.keys():
-            self.remove_event_listener(event)
-
+        for event, callback in tuple(self._event_listeners.keys()):
+            self.remove_event_listener(event, callback)
         self._events.clear()
+
         for entity in self._entities:
             entity.remove()
+        self._entities.clear()
 
     def run(self):
         pass
@@ -132,21 +137,23 @@ class Game:
         delay = int(math.floor(min(next_draw - time.perf_counter(), next_update - time.perf_counter()) * 1000))
         self.canvas.after(delay or 1, self._run)
 
-    def update(self, events):
+    def update(self):
         pass
 
     def _update(self):
-        events = tuple(self._events)
-        self.update(events)
+        events_ = self._events
+        for callback, events in tuple(events_.items()):
+            callback(tuple(events))
+            del events_[callback]
+
+        self.update()
         for entity in self._entities:
-            entity.update(events)
+            entity.update()
 
-        self._events.clear()
-
-    def draw(self):
+    def draw(self, interpolation):
         pass
 
     def _draw(self, interpolation):
-        self.draw()
+        self.draw(interpolation)
         for entity in self._entities:
             entity.draw(interpolation)
